@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Formulaire Stockage</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f5f5f5;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+  }
+  .container {
+    display: flex;
+    max-width: 800px;
+    width: 100%;
+  }
+  .left-card,
+  .right-card {
+    background-color: #ffffff;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+    flex: 1;
+    margin: 10px;
+  }
+  .form-group {
+    margin-bottom: 15px;
+  }
+  label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+  input[type="file"] {
+    display: none;
+  }
+  .custom-file-upload {
+    background-color: #3498db;
+    color: #ffffff;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  .custom-file-upload:hover {
+    background-color: #2980b9;
+  }
+  .submit-btn {
+    background-color: #27ae60;
+    color: #ffffff;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+    .gray-button {
+  background-color: #ccc; /* Couleur de fond grise */
+  color: #666; /* Couleur du texte grise */
+  cursor: not-allowed; /* Curseur désactivé */
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="left-card">
+    <h2>Formulaire d'Envoi de Fichier sur le Réseau IPFS</h2>
+    <form id="uploadForm" method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="form-group">
+        <label for="fileInput">Sélectionnez un fichier :</label>
+        <label class="custom-file-upload">
+          <input type="file" id="fileInput" name="file" onchange="displaySelectedFileName()" />
+          Choisir un fichier
+        </label>
+      </div>
+      <div id="selectedFileName" style="display: none;"></div>
+      <button class="submit-btn" type="submit" id="uploadButton">Envoyer</button>
+    </form>
+    <div id="fileInfoCard" style="display: none;">
+      <h3>Informations sur le Fichier</h3>
+      <p><strong>Nom du Fichier:</strong> <span id="fileName"></span></p>
+      <p><strong>Taille du Fichier:</strong> <span id="fileSize"></span>  Ko</p>
+      <p><strong>Date d'Ajout:</strong> <span id="fileUploadDate"></span></p>
+    </div>
+    <div id="filehashcard" style="display: none;">
+      <h3>identifiant hash du Fichier sur le cluster</h3>
+      <p><span id="fileUploadHash"></span></p>
+    </div>
+  </div>
+  <div class="right-card">
+    <h2>Formulaire de Récupération de Fichier via le CID IPFS</h2>
+    <form id="retrieveForm" method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label for="hashInput">Entrez le CID (Content Identifier) :</label>
+        <input type="text" id="hashInput" placeholder="CID" />
+      </div>
+      <button class="submit-btn" type="button" id="recupereboutton">Récupérer</button>
+    </form>
+    <div id="fileDisplayrec" style="display: none;">
+      <h3>Informations sur le fichier Récupéré</h3>
+      <p><strong>Nom du Fichier:</strong> <span id="fileName"></span></p>
+      <p><strong>Taille du Fichier:</strong> <span id="fileSize"></span>  Ko</p>
+      <a id="downloadLink" href="#">Télécharger</a>
+    </div>
+  </div>
+</div>
+
+</body>
+<script>
+  function displaySelectedFileName() {
+    const fileInput = document.getElementById('fileInput');
+    const fileInfoCard = document.getElementById('fileInfoCard');
+  
+    if (fileInput.files.length > 0) {
+      const file = fileInput.files[0];
+      const fileName = file.name;
+      const fileType = file.type;
+      const fileSizeKb = (file.size / 1024).toFixed(2); // Taille en Ko
+      
+      // Afficher les informations sur le fichier
+      fileInfoCard.innerHTML = `
+        <p><strong>Nom du Fichier:</strong> ${fileName}</p>
+        <p><strong>Type du Fichier:</strong> ${fileType}</p>
+        <p><strong>Taille du Fichier:</strong> ${fileSizeKb} Ko</p>
+        <p><strong>Date d'Ajout:</strong> ${new Date().toLocaleString()}</p>
+      `;
+      fileInfoCard.style.display = 'block';
+    }
+  }
+
+
+  document.getElementById('uploadForm').addEventListener('submit',function (event){
+    event.preventDefault();
+
+
+    var format_definitif=new FormData(this)
+    var fileInput= document.getElementById('fileInput')
+    var contenu_fichier = format_definitif.get('file')
+    const uploadButton = document.getElementById('uploadButton');
+    const taillefic=(fileInput.files[0].size / 1024).toFixed(2);
+
+    format_definitif.append('csrfmiddlewaretoken',document.querySelector('input[name="csrfmiddlewaretoken"]').value);
+    format_definitif.append('name', fileInput.files[0].name);
+    format_definitif.append('taille', taillefic)
+    
+    uploadButton.disabled = true;
+    uploadButton.textContent = "En cours d'envoi...";
+    uploadButton.classList.add('gray-button');
+    
+    fetch ('envoie/',{
+      method: 'POST',
+      body: format_definitif,
+      credentials:'include'
+    }).then(reponse => {
+      if(reponse.ok){
+        return reponse.json();
+      }
+      else{
+        return reponse.json();
+      }
+    }).then(data=>{
+      alert(data.message)
+      var filehash=document.getElementById('filehashcard')
+      filehash.innerHTML= `
+      <h3>identifiant hash du Fichier sur le cluster</h3>
+      <p><span id="fileUploadHash">${data.hash_fichier}</span></p>
+        
+      `;
+      filehash.style.display='block';
+    })
+    .catch(error =>{
+      
+    });
+
+
+     // Simuler un délai d'envoi de 6 secondes (6000 millisecondes)
+     setTimeout(function() {
+      // Réactiver le bouton "Envoyer" et le renommer à nouveau "Envoyer"
+      uploadButton.disabled = false;
+      uploadButton.textContent = "Envoyer";
+      uploadButton.classList.remove('gray-button');
+      
+    }, 6000);
+  });
+
+  document.getElementById('recupereboutton').addEventListener('click',function (){
+
+    var format_definitif=new FormData()
+    const  recupereboutton = document.getElementById('recupereboutton');
+
+    format_definitif.append('csrfmiddlewaretoken',document.querySelector('input[name="csrfmiddlewaretoken"]').value)
+    format_definitif.append('hash_passé',document.getElementById('hashInput').value)
+    recupereboutton.disabled = true;
+    recupereboutton.textContent = "En cours de récupération...";
+    recupereboutton.classList.add('gray-button');
+
+    fetch ('recupere/',{
+      method: 'POST',
+      body:format_definitif,
+      credentials:'include'
+    }).then(reponse => {
+      if(reponse.ok){
+        return reponse.json();
+      }
+      else{
+        return reponse.json();
+      }
+    }).then(data=>{
+      alert(data.message)
+      if (data.message==='l\'identifiant hash existe')
+      {
+        var filehash=document.getElementById('fileDisplayrec')
+        filehash.innerHTML= `
+        <h3>Informations sur le fichier Récupéré</h3>
+        <p><strong>Nom du Fichier:</strong> <span id="fileName"></span>${data.nomfic}</p>
+        <p><strong>Taille du Fichier:</strong> <span id="fileSize"></span>${data.taillefic}  Ko</p>
+        <a id="downloadLink" href="{% url 'telechargement' %}">Télécharger</a>
+          
+        `;
+        filehash.style.display='block';
+      }
+      
+    })
+    .catch(error =>{
+      
+    })
+
+
+    // Simuler un délai d'envoi de 6 secondes (6000 millisecondes)
+    setTimeout(function() {
+      // Réactiver le bouton "Envoyer" et le renommer à nouveau "Envoyer"
+      recupereboutton.disabled = false;
+      recupereboutton.textContent = "Récupérer";
+      recupereboutton.classList.remove('gray-button');
+      document.getElementById('hashInput').value = ""
+ 
+    }, 6000);
+    })
+
+  // ... Votre code JavaScript précédent ...
+  </script>
+</html>

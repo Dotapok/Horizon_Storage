@@ -1,0 +1,66 @@
+services:
+
+  cluster0:
+    container_name: cluster0
+    image: ipfs/ipfs-cluster:latest
+    depends_on:
+      - ipfs0
+    environment:
+      CLUSTER_PEERNAME: cluster0
+      CLUSTER_SECRET: ${CLUSTER_SECRET}
+      CLUSTER_IPFSHTTP_NODEMULTIADDRESS: /dns4/ipfs0/tcp/5001
+      CLUSTER_CRDT_TRUSTEDPEERS: '*' 
+      CLUSTER_RESTAPI_HTTPLISTENMULTIADDRESS: /ip4/0.0.0.0/tcp/9094 
+      CLUSTER_MONITORPINGINTERVAL: 2s 
+    ports:
+          - "127.0.0.1:9094:9094"
+    volumes:
+      - ./Grappe/cluster0:/data/ipfs-cluster
+
+  #les noeuds du reseau
+  ipfs0:
+    container_name: noeud0
+    image: ipfs/go-ipfs:master-latest
+    volumes:
+      - ./Noeuds/noeud0:/data/ipfs
+    ports:
+          - "4001:4001"
+          - "5001:5001"
+          - "8081:8080"
+  ipfs1:
+    container_name: noeud1
+    image: ipfs/go-ipfs:master-latest
+    volumes:
+      - ./Noeuds/noeud1:/data/ipfs
+    ports:
+          - "4101:4001"
+          - "5101:5001"
+          - "8181:8080"
+  ipfs2:
+    container_name: noeud2
+    image: ipfs/go-ipfs:master-latest
+    volumes:
+      - ./Noeuds/noeud2:/data/ipfs
+    ports:
+          - "4201:4001"
+          - "5201:5001"
+          - "8281:8080"
+  ipfs3:
+    container_name: noeud3
+    image: ipfs/go-ipfs:master-latest
+    volumes:
+      - ./Noeuds/noeud3:/data/ipfs
+    ports:
+      - "4301:4001"
+      - "5301:5001"
+      - "8381:8080"
+  ipfs4:
+    container_name: noeud4
+    image: ipfs/go-ipfs:master-latest
+    volumes:
+      - ./Noeuds/noeud4:/data/ipfs
+    ports:
+      - "4401:4001"
+      - "5401:5001"
+      - "8481:8080"
+
